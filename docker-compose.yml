@@ -13,15 +13,17 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.new
     container_name: patrimonio-app
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
-      - DATABASE_URL=postgresql://gustavo:12345678@db:5432/patrimonio
-    depends_on:
-      - db
+      - DATABASE_URL="postgresql://gustavo:12345678@localhost:5489/patrimonio"
+    # depends_on:
+    #   - db
     volumes:
       - ./prisma:/app/prisma:ro
 
