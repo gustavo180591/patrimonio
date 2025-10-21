@@ -1,0 +1,30 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:16
+    container_name: patrimonio-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gustavo
+      POSTGRES_PASSWORD: 12345678
+      POSTGRES_DB: patrimonio
+    ports:
+      - "5489:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+  app:
+    build: .
+    container_name: patrimonio-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://gustavo:12345678@db:5432/patrimonio
+    depends_on:
+      - db
+    volumes:
+      - ./prisma:/app/prisma:ro
+
+volumes:
+  db_data:
+  app_node_modules:
