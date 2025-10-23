@@ -1,41 +1,52 @@
-# Esquema de Base de Datos
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-## Modelo de Usuario (`usuario`)
+generator client {
+  provider = "prisma-client-js"
+}
 
-| Campo | Tipo | Requerido | Descripción |
-|-------|------|-----------|-------------|
-| id | UUID | Sí | Identificador único del usuario |
-| email | String | Sí | Correo electrónico (único) |
-| nombre | String | Sí | Nombre del usuario |
-| apellido | String | Sí | Apellido del usuario |
-| password | String | Sí | Contraseña hasheada |
-| rol | String | No (default: 'usuario') | Rol del usuario ('admin' o 'usuario') |
-| createdAt | DateTime | Sí | Fecha de creación |
-| updatedAt | DateTime | Sí | Fecha de última actualización |
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
 
-## Modelo de Equipo (`equipos`)
+// Modelo de Usuario
+model Usuario {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  nombre    String
+  apellido  String
+  password  String
+  rol       String   @default("usuario")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-| Campo | Tipo | Requerido | Descripción |
-|-------|------|-----------|-------------|
-| id | UUID | Sí | Identificador único del equipo |
-| numeroInventario | String | Sí | Número de inventario (único) |
-| cantidad | Int | Sí | Cantidad de unidades |
-| detalle | String | No | Descripción detallada |
-| estado | String | No (default: 'Nuevo') | Estado del equipo |
-| fechaAlta | DateTime | Sí | Fecha de alta del equipo |
-| fechaActualizacion | DateTime | Sí | Fecha de última actualización |
-| fechaBaja | DateTime | No | Fecha de baja (opcional) |
-| fechaRecepcion | DateTime | No | Fecha de recepción |
-| ordenProvision | String | No | Orden de provisión |
-| costo | Float | No | Costo en AR$ |
-| destino | String | No | Ubicación/destino del equipo |
-| expedienteCompra | String | No | Número de expediente de compra |
-| codigoQR | String | Sí | Código QR único |
-| usuarioId | UUID | Sí | ID del usuario que registró el equipo |
-| createdAt | DateTime | Sí | Fecha de creación |
-| updatedAt | DateTime | Sí | Fecha de última actualización |
+  // Relaciones
+  equipos Equipos[]
 
-## Relaciones
+  @@map("usuarios")
+}
 
-- Un `Usuario` puede tener muchos `Equipos` (relación 1:N)
-- Cada `Equipo` pertenece a un `Usuario`
+// Modelo de Equipos (Activos del Inventario)
+model Equipos {
+  id                 String    @id @default(cuid())
+  numeroInventario   String    @unique
+  cantidad           Int
+  detalle            String?
+  estado             String    @default("Nuevo")
+  fechaAlta          DateTime
+  fechaActualizacion DateTime  @updatedAt
+  fechaBaja          DateTime?
+  fechaRecepcion     DateTime?
+  ordenProvision     String?
+  costo              Float?
+  destino            String?
+  expedienteCompra   String?
+  codigoQR           String
+  usuarioId          String
+
+  // Relaciones
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("equipos")
+}

@@ -1,43 +1,64 @@
 // src/routes/api/auth/register/+server.ts
-import { json } from '@sveltejs/kit'
-import { prisma } from '$lib/prisma'
-import bcrypt from 'bcryptjs'
-import { fail } from '@sveltejs/kit'
+import { json, fail, redirect } from '@sveltejs/kit';
+import { prisma } from '$lib/prisma';
+import bcrypt from 'bcryptjs';
+
+// Handle GET request - redirect to the registration page
+export function GET() {
+  throw redirect(303, '/register');
+}
 
 export async function POST({ request }: { request: Request }) {
   try {
-    const { email, nombre, apellido, password, rol } = await request.json()
+    const data = await request.json();
+    const { email, nombre, password } = data;
     
-    if (!email || !password || !nombre || !apellido) {
-      return json({ error: 'Todos los campos son requeridos' }, { status: 400 })
+    // Validate required fields
+    if (!email || !password || !nombre) {
+      return json(
+        { error: 'Email, nombre y contraseña son requeridos' },
+        { status: 400 }
+      );
     }
-    
-    // Verificar si el usuario ya existe
+
+    // Check for existing user
     const existingUser = await prisma.usuario.findUnique({
       where: { email }
-    })
-    
+    });
+
     if (existingUser) {
-      return json({ error: 'El usuario ya existe' }, { status: 400 })
+      return json(
+        { error: 'El correo electrónico ya está registrado' },
+        { status: 400 }
+      );
     }
-    
-    // Hashear contraseña
-    const hashedPassword = await bcrypt.hash(password, 12)
-    
-    // Crear usuario
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
     const user = await prisma.usuario.create({
       data: {
         email,
         nombre,
-        apellido,
         password: hashedPassword,
-        rol: rol || 'usuario'
+        rol: 'usuario' // Default role
+      },
+      select: {
+        id: true,
+        email: true,
+        nombre: true,
+        rol: true
       }
-    })
-    
-    return json({ user: { id: user.id, email: user.email, nombre: user.nombre } })
+    });
+
+    return json({ user }, { status: 201 });
+
   } catch (error) {
-    console.error('Error creating user:', error)
-    return fail(500, { error: 'Error interno del servidor' })
+    console.error('Registration error:', error);
+    return json(
+      { error: 'Error al procesar el registro' },
+      { status: 500 }
+    );
   }
 }

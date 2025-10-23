@@ -1,11 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-
-	let mounted = $state(false);
-
-	onMount(() => {
-		mounted = true;
-	});
+	// Page content
 </script>
 
 <svelte:head>
@@ -13,7 +7,7 @@
 	<meta name="description" content="Sistema integral para la gestión y control de equipos e inventario" />
 </svelte:head>
 
-<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+<div class="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100">
 	<!-- Header -->
 	<header class="bg-white shadow-sm border-b">
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -143,21 +137,3 @@
 		</div>
 	</footer>
 </div>
-
-<style>
-	/* Custom animations for enhanced UX */
-	@keyframes fadeInUp {
-		from {
-			opacity: 0;
-			transform: translateY(30px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-
-	.fade-in-up {
-		animation: fadeInUp 0.6s ease-out forwards;
-	}
-</style>

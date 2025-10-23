@@ -1,32 +1,115 @@
-version: "3.9"
+version: '3.8'
+
+networks:
+  app-network:
+    driver: bridge
+
 services:
+  # Base de datos PostgreSQL
   db:
-    image: postgres:16
-    container_name: patrimonio-db
-    restart: unless-stopped
+    image: postgres:16-alpine
+    container_name: patrimonio_db
     environment:
-      POSTGRES_USER: gustavo
-      POSTGRES_PASSWORD: 12345678
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: patrimonio
     ports:
-      - "5489:5432"
+      - "5433:5432"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d patrimonio"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Redis para sesiones y colas
+  redis:
+    image: redis:7-alpine
+    container_name: patrimonio_redis
+    command: redis-server --requirepass redispass
+    ports:
+      - "6380:6379"  # Mapped to 6380 on host, 6379 in container
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Adminer para gestión de la base de datos
+  adminer:
+    image: adminer:latest
+    container_name: patrimonio_adminer
+    ports:
+      - "8081:8080"  # Changed from 8080 to 8081 on host
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    depends_on:
+      - db
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Aplicación SvelteKit
   app:
     build:
       context: .
-      dockerfile: Dockerfile.new
-    container_name: patrimonio-app
-    restart: unless-stopped
+      target: development
+    container_name: patrimonio_app
     ports:
-      - "3001:3000"
+      - "3001:3000"  # Changed from 3000 to 3001 on host
     environment:
-      - DATABASE_URL="postgresql://gustavo:12345678@localhost:5489/patrimonio"
-    # depends_on:
-    #   - db
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/patrimonio
+      - REDIS_URL=redis://:redispass@redis:6379  # Using internal container port
+      - PORT=3000
+      - HOST=0.0.0.0
     volumes:
-      - ./prisma:/app/prisma:ro
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+      - /usr/src/app/.svelte-kit
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+  # Worker para tareas en segundo plano (opcional)
+  worker:
+    build:
+      context: .
+      target: development
+    container_name: patrimonio_worker
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/patrimonio
+      - REDIS_URL=redis://:redispass@redis:6379  # Using internal container port
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      - db
+      - redis
+    networks:
+      - app-network
+    restart: unless-stopped
+    command: sh -c "npm run dev"
 
 volumes:
-  db_data:
-  app_node_modules:
+  postgres_data:
+  redis_data:

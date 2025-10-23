@@ -49,7 +49,7 @@
 ## Deployment & Infrastructure
 - **Docker**: Containerization
 - **Docker Compose**: Multi-container orchestration
-- **PostgreSQL Container**: patrimonio-db (Port 5489 → 5432)
+- **PostgreSQL Container**: patrimonio-db (Port 5433 → 5432)
 
 ## Development Commands
 - `npm run dev`: Start development server

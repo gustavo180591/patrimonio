@@ -13,13 +13,12 @@ datasource db {
 // Modelo de Usuario
 model Usuario {
   id        String   @id @default(cuid())
-  email     String   @unique @db.VarChar(255)
-  nombre    String   @db.VarChar(100)
-  apellido  String   @db.VarChar(100)
-  password  String   @db.VarChar(255)
-  rol       String   @default("usuario") @db.VarChar(50)
-  createdAt DateTime @default(now()) @db.Timestamp(6)
-  updatedAt DateTime @updatedAt @db.Timestamp(6)
+  email     String   @unique
+  nombre    String
+  password  String
+  rol       String   @default("usuario")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relaciones
   equipos Equipos[]
@@ -30,19 +29,19 @@ model Usuario {
 // Modelo de Equipos (Activos del Inventario)
 model Equipos {
   id                 String    @id @default(cuid())
-  numeroInventario   String    @unique @db.VarChar(100)
-  cantidad           Int       @db.Integer
-  detalle            String?   @db.Text
-  estado             String    @default("Nuevo") @db.VarChar(50)
-  fechaAlta          DateTime  @db.Timestamp(6)
-  fechaActualizacion DateTime  @updatedAt @db.Timestamp(6)
-  fechaBaja          DateTime? @db.Timestamp(6)
-  fechaRecepcion     DateTime? @db.Timestamp(6)
-  ordenProvision     String?   @db.VarChar(100)
-  costo              Float?    @db.Real
-  destino            String?   @db.VarChar(255)
-  expedienteCompra   String?   @db.VarChar(100)
-  codigoQR           String    @db.VarChar(255)
+  numeroInventario   String    @unique
+  cantidad           Int
+  detalle            String?
+  estado             String    @default("Nuevo")
+  fechaAlta          DateTime
+  fechaActualizacion DateTime  @updatedAt
+  fechaBaja          DateTime?
+  fechaRecepcion     DateTime?
+  ordenProvision     String?
+  costo              Float?
+  destino            String?
+  expedienteCompra   String?
+  codigoQR           String
   usuarioId          String
 
   // Relaciones

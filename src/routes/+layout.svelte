@@ -1,5 +1,6 @@
 <script lang="ts">
 	import '../app.css';
+	import { browser } from '$app/environment';
 
 	let { children } = $props();
 </script>
@@ -8,4 +9,6 @@
 	<link rel="icon" href="/favicon.svg" />
 </svelte:head>
 
-{@render children?.()}
+{#if browser}
+	{@render children?.()}
+{/if}

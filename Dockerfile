@@ -1,49 +1,70 @@
-# Use Node.js 22 LTS with Debian for better compatibility
-FROM node:22-slim AS builder
 
-# Install necessary build tools
-RUN apt-get update && apt-get install -y python3 make g++
+# Etapa de desarrollo
+FROM node:20-alpine AS development
 
-# Set working directory
-WORKDIR /app
+WORKDIR /usr/src/app
 
-# Copy package files
-COPY package*.json ./
+# Instalar herramientas de compilación para bcrypt
+RUN apk add --no-cache python3 make g++
 
-# Install dependencies
-RUN npm ci
+# Instalar dependencias de desarrollo
+COPY package.json package-lock.json* ./
+RUN npm ci --legacy-peer-deps
 
-# Copy source code
+# Copiar el resto de la aplicación
 COPY . .
 
-# Build the application
+# Generar Prisma client
+RUN npx prisma generate
+
+# Puerto expuesto para desarrollo
+EXPOSE 5173
+
+# Comando para desarrollo
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
+# Etapa de construcción para producción
+FROM node:20-alpine AS builder
+
+# Instalar dependencias de compilación necesarias
+RUN apk add --no-cache python3 make g++
+
+WORKDIR /usr/src/app
+
+# Instalar dependencias
+COPY package.json package-lock.json* ./
+RUN npm ci --prefer-offline --no-audit --progress=false
+
+# Copiar el resto de la aplicación
+COPY . .
+
+# Construir la aplicación
 RUN npm run build
 
-# List the build directory to debug
-RUN ls -la build/ || echo "Build directory not found"
+# Etapa de producción
+FROM --platform=linux/amd64 node:20-alpine@sha256:8b1bff8b7361fa4aecbca356353f7b402b4fd0a6ddaccb319d578297a9a8c59e AS runner
 
-# Remove dev dependencies to reduce image size
-RUN npm prune --production
+WORKDIR /usr/src/app
 
-# Create a new stage for the production image
-FROM node:22-slim
+# Configuración de seguridad
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001 && \
+    chown -R nextjs:nodejs /usr/src/app
 
-# Set working directory
-WORKDIR /app
-
-# Install production dependencies only
-COPY package*.json ./
-RUN npm ci --only=production
-
-# Copy the built application from the builder stage
-COPY --from=builder /app/build ./build
-COPY --from=builder /app/static ./static
-
-# Expose port (SvelteKit default is 3000)
-EXPOSE 3000
-
-# Set environment to production
+# Instalar solo dependencias de producción
 ENV NODE_ENV=production
+COPY package.json package-lock.json* ./
+RUN npm ci --only=production --prefer-offline --no-audit --progress=false
 
-# Start the application
-CMD ["node", "build/index.js"]
+# Copiar la aplicación construida desde la etapa de construcción
+COPY --from=builder --chown=nextjs:nodejs /usr/src/app/build ./build
+COPY --from=builder --chown=nextjs:nodejs /usr/src/app/node_modules ./node_modules
+
+# Cambiar al usuario no-root
+USER nextjs
+
+# Puerto expuesto
+EXPOSE 5173
+
+# Comando para ejecutar la aplicación
+CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0"]
